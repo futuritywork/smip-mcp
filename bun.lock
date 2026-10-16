@@ -5,18 +5,18 @@
     "": {
       "name": "smip-mcp",
       "dependencies": {
-        "@futurity/plugins": "^2.0.0",
+        "@futurity/plugins": "file:../plugins/packages/plugins",
+        "@modelcontextprotocol/sdk": "^1.24.3",
+        "zod": "^4.1.13",
       },
       "devDependencies": {
-        "@modelcontextprotocol/sdk": "^1.24.3",
         "@types/bun": "latest",
         "typescript": "^5.9.3",
-        "zod": "^4.1.13",
       },
     },
   },
   "packages": {
-    "@futurity/plugins": ["@futurity/plugins@2.0.0", "", { "dependencies": { "jose": "^6.0.11" }, "peerDependencies": { "@modelcontextprotocol/sdk": "^1.24.3", "zod": "^4.1.13" } }, "sha512-Y8oSuCFgFHljjQeUPnqDJttrjM4mZyOJ4pPBy+rn19E+jOW9VlRzH9Hc/qbGqkr/HIVXp0VTbHtrBC/y2jCasA=="],
+    "@futurity/plugins": ["@futurity/plugins@file:../plugins/packages/plugins", { "dependencies": { "jose": "^6.0.11" }, "devDependencies": { "@modelcontextprotocol/sdk": "^1.24.3", "@types/bun": "latest", "typescript": "^5.9.3", "zod": "^4.1.13" }, "peerDependencies": { "@modelcontextprotocol/sdk": "^1.24.3", "zod": "^4.1.13" } }],
 
     "@hono/node-server": ["@hono/node-server@2.1.4", "", { "peerDependencies": { "hono": "^4 || ^5.0.0-0" } }, "sha512-2g1qeHl4BduwDn6L8nkAvDrPUWPMlkQ//a5NhP/zIyaXKMjZNRV+cG9Csu+BiJFf6+68pqzjf4Hi5sJGKHuS1g=="],
 

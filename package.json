@@ -5,15 +5,16 @@
   "scripts": {
     "dev": "bun run --watch src/index.ts",
     "start": "bun run src/index.ts",
-    "keygen": "bun run scripts/keygen.ts"
+    "keygen": "bun run scripts/keygen.ts",
+    "check": "tsc --noEmit"
   },
   "dependencies": {
-    "@futurity/plugins": "^2.0.0"
+    "@futurity/plugins": "file:../plugins/packages/plugins",
+    "@modelcontextprotocol/sdk": "^1.24.3",
+    "zod": "^4.1.13"
   },
   "devDependencies": {
-    "@modelcontextprotocol/sdk": "^1.24.3",
     "@types/bun": "latest",
-    "typescript": "^5.9.3",
-    "zod": "^4.1.13"
+    "typescript": "^5.9.3"
   }
 }
