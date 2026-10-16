@@ -16,7 +16,8 @@ const metadata = z.object({
   last_upload_formatted: z.string(),
 });
 const envelope = z.object({ success: z.literal(true), status: z.string(), message: z.string() });
-const listResponse = envelope.extend({ data: z.array(metadata.extend({
+// Production lists omit status/message; Postman examples include both strings.
+const listResponse = envelope.partial({ status: true, message: true }).extend({ data: z.array(metadata.extend({
   has_price: z.boolean(), has_md_price: z.boolean(), has_promo: z.boolean(),
 })) });
 const reference = z.string().max(8192).nullish();
@@ -25,28 +26,30 @@ const detailResponse = envelope.extend({ data: metadata.extend({
   price_url: reference, md_price_url: reference,
 }) });
 
+const downloadOutput = z.object({
+  pricelist_id: pricelistId,
+  variant: z.enum(["price", "md_price"]),
+  filename: z.string(),
+  size_bytes: z.number().int().positive(),
+  content_type: z.string(),
+  expires_at: z.iso.datetime(),
+  download_url: z.url(),
+});
+
 /** Registers metadata reads and bounded, five-minute plugin-hosted XLSX capabilities. */
 export function registerPricelistTools(app: McpApp, client: SmipClient, artifacts: ArtifactStore, publicUrl: string) {
   app.tool("smip_list_pricelists", {
-    description: "List SMIP pricelist metadata and available variants. Pass a returned id as pricelist_id to smip_get_pricelist or smip_download_pricelist.",
+    description: "List SMIP pricelist metadata and available variants. Pass a returned id as pricelist_id to smip_download_pricelist.",
     dangerLevel: "read",
     input: z.object({}),
+    output: listResponse,
     handler: (_input, { signal }) => client.get("/pricelist", listResponse, signal),
-  });
-  app.tool("smip_get_pricelist", {
-    description: "Get metadata and price/md_price availability for an exact pricelist_id. Use smip_download_pricelist for a temporary XLSX download link.",
-    dangerLevel: "read",
-    input: z.object({ pricelist_id: pricelistId }),
-    handler: async ({ pricelist_id }, { signal }) => {
-      const response = await client.get(`/pricelist/${pricelist_id}`, detailResponse, signal);
-      const { price_url, md_price_url, ...data } = response.data;
-      return { ...response, data: { ...data, has_price: Boolean(price_url), has_md_price: Boolean(md_price_url) } };
-    },
   });
   app.tool("smip_download_pricelist", {
     description: "Download a SMIP pricelist XLSX (variant price by default, or md_price). Returns a reusable plugin-hosted bearer link expiring in five minutes, not file contents. Anyone with the link can download it; keep it private. Maximum 10 MiB. Saving to sandbox/Vault is a separate step and is not guaranteed.",
     dangerLevel: "read",
     input: z.object({ pricelist_id: pricelistId, variant: z.enum(["price", "md_price"]).default("price") }),
+    output: downloadOutput,
     handler: async ({ pricelist_id, variant }, { signal }) => {
       const artifact = await artifacts.create(`pricelist-${pricelist_id}-${variant}.xlsx`, async downloadSignal => {
         const { data } = await client.get(`/pricelist/${pricelist_id}`, detailResponse, downloadSignal);

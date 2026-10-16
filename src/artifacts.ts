@@ -4,7 +4,7 @@ import { SmipError, type DownloadBody } from "./http";
 
 export const XLSX_TYPE = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
 const TTL_MS = 5 * 60 * 1000;
-const MAX_FILES = 5;
+const MAX_FILES = 10;
 
 type Artifact = DownloadBody & { filename: string; expiresAt: number };
 

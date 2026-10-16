@@ -41,6 +41,7 @@ export function registerStockTools(app: McpApp, client: SmipClient) {
         .min(1)
         .describe("Part number or description to search for."),
     }),
+    output: materialsResponse,
     handler: ({ query }, { signal }) =>
       client.get(
         `/stock/get-pn?${new URLSearchParams({ q: query })}`,
@@ -62,6 +63,7 @@ export function registerStockTools(app: McpApp, client: SmipClient) {
           "Exact part number, such as one returned by smip_search_materials.",
         ),
     }),
+    output: stockResponse,
     handler: ({ part_number }, { signal }) =>
       client.get(
         `/stock/check-stock?${new URLSearchParams({ material: part_number })}`,

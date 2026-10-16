@@ -11,15 +11,14 @@ Includes two read-only stock tools ported from
 
 Both stock inputs are trimmed, must be nonempty strings, and are URL-encoded.
 Both results retain the source `{ success: true, status, message, data }` shape
-and are runtime-validated before the SDK serializes them as JSON text content.
+and are runtime-validated before the SDK returns them as both structured content
+and JSON text content.
 
-Three additional read-only tools follow the Get/Show/Download Pricelist examples
+Two additional read-only tools follow the Get/Show/Download Pricelist examples
 in `futurity-marketplace/SMI Mobile.postman_collection 15102026.json`:
 
 - `smip_list_pricelists({})`: metadata including string `id`, title, brand, product
   office, upload dates and `has_price`/`has_md_price`/`has_promo` flags.
-- `smip_get_pricelist({ pricelist_id })`: metadata, optional uploader/contact and
-  price/md_price availability. Opaque upstream download references stay internal.
 - `smip_download_pricelist({ pricelist_id, variant? })`: `variant` is `price`
   (default) or `md_price`. Returns `download_url`, generated `filename`,
   `size_bytes`, `content_type`, `expires_at`, `pricelist_id` and `variant`.
@@ -70,7 +69,7 @@ Do not put organization credentials in `.env`, tool arguments, URLs, logs, or so
 - Former `/auth/*` routes: 404.
 
 MCP initialization succeeds with valid credential **shape** and advertises the
-tools capability. `tools/list` exposes exactly the five tools above. Initialization,
+tools capability. `tools/list` exposes exactly the four tools above. Initialization,
 discovery, catalog and health requests do not contact SMIP.
 
 ## Temporary downloads and cleanup
@@ -124,15 +123,21 @@ prevents its business request. Shared login/refresh exchanges finish independent
 under their own 15-second timeout; cancelling one caller does not disrupt others.
 Requests are never replayed automatically.
 
-## SDK limitations (accepted for this port)
+## SDK output schemas and annotation limits
 
-- The SDK does not advertise output schemas or validate its `output` option.
-  The app validates upstream JSON response schemas at runtime instead.
+All four tools declare their final object outputs. `tools/list` advertises MCP
+`outputSchema`; successful calls include matching `structuredContent` alongside
+JSON text. The app validates upstream responses, and the SDK validates the final
+result. Pricelist detail schemas omit opaque references and expose availability
+flags; the download schema describes link metadata only, never binary contents.
+
+Remaining annotation limitation:
 - Full source annotations are unavailable. `dangerLevel: "read"` publishes
   `readOnlyHint: true`, `destructiveHint: false` and `futurity:dangerLevel: "read"`;
   `idempotentHint` and `openWorldHint` are not advertised.
 
-No SDK changes or compatibility layer are included.
+This requires the sibling SDK build with output-schema support; no compatibility
+layer is included.
 
 ## Authentication contract
 
