@@ -1,8 +1,7 @@
 import { randomBytes } from "node:crypto";
 import type { Middleware } from "@futurity/plugins";
-import { SmipError, type DownloadBody } from "./http";
+import { PDF_TYPE, SmipError, type DownloadBody } from "./http";
 
-export const XLSX_TYPE = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
 const TTL_MS = 5 * 60 * 1000;
 const MAX_FILES = 10;
 
@@ -10,7 +9,7 @@ type Artifact = DownloadBody & { filename: string; expiresAt: number };
 
 /**
  * Owns temporary bearer-capability files and in-flight capacity reservations.
- * Up to five stored/pending files share capacity, each bounded to 10 MiB.
+ * Up to ten stored/pending files share capacity, each bounded to 10 MiB.
  * Loads reserve one slot; successes retain it for five minutes, failures release it.
  * stop() aborts loads, clears files and the unref'ed cleanup timer, and closes the store.
  */
@@ -36,13 +35,14 @@ export class ArtifactStore {
 
   /**
    * Loads a bounded body under a reservation and returns small public link metadata.
+   * filenameStem is a generated pricelist name; the loaded media type selects its extension.
    * load transfers ownership of its chunks to this store and must respect its signal.
    * Caller cancellation and shutdown prevent publication even if load finishes late.
    */
-  async create(filename: string, load: (signal: AbortSignal) => Promise<DownloadBody>, caller?: AbortSignal) {
+  async create(filenameStem: string, load: (signal: AbortSignal) => Promise<DownloadBody>, caller?: AbortSignal) {
     this.cleanup();
     if (this.stopped || caller?.aborted) throw new SmipError("Download cancelled.", 499);
-    if (!/^pricelist-[0-9]+-(price|md_price)\.xlsx$/.test(filename)) throw new SmipError("Invalid download filename.", 400);
+    if (!/^pricelist-[0-9]+-(price|md_price)$/.test(filenameStem)) throw new SmipError("Invalid download filename.", 400);
     if (this.files.size + this.pending.size >= MAX_FILES)
       throw new SmipError("Temporary download capacity reached. Try again after links expire.", 429);
     const controller = new AbortController();
@@ -53,10 +53,11 @@ export class ArtifactStore {
       if (this.stopped || signal.aborted) throw new SmipError("Download cancelled.", 499);
       const size = body.chunks.reduce((sum, chunk) => sum + chunk.byteLength, 0);
       if (size === 0 || size > this.maxFileBytes || size !== body.size) throw new SmipError("Invalid download size.");
+      const filename = `${filenameStem}.${body.contentType === PDF_TYPE ? "pdf" : "xlsx"}`;
       const id = randomBytes(32).toString("hex");
       const expiresAt = this.now() + TTL_MS;
       this.files.set(id, { ...body, filename, expiresAt });
-      return { id, filename, size_bytes: size, content_type: XLSX_TYPE, expires_at: new Date(expiresAt).toISOString() };
+      return { id, filename, size_bytes: size, content_type: body.contentType, expires_at: new Date(expiresAt).toISOString() };
     } finally {
       this.pending.delete(controller);
     }
@@ -75,7 +76,7 @@ export class ArtifactStore {
     const id = path.slice("/downloads/".length);
     const file = /^[a-f0-9]{64}$/.test(id) ? this.files.get(id) : undefined;
     if (!file) return new Response(null, { status: 404, headers });
-    headers.set("Content-Type", XLSX_TYPE);
+    headers.set("Content-Type", file.contentType);
     headers.set("Content-Disposition", `attachment; filename="${file.filename}"`);
     headers.set("Content-Length", String(file.size));
     let index = 0;

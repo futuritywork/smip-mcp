@@ -11,13 +11,17 @@ export class SmipError extends Error {
   }
 }
 
-/** Owned binary chunks, bounded during reading; size is their total byte length. */
-export type DownloadBody = { chunks: Uint8Array[]; size: number };
+export const XLSX_TYPE = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
+export const PDF_TYPE = "application/pdf";
+
+/** Owned binary chunks and normalized media type; size is their total byte length. */
+export type DownloadBody = { chunks: Uint8Array[]; size: number; contentType: typeof XLSX_TYPE | typeof PDF_TYPE };
 
 /**
  * Reads once without redirects, retaining at most maxBytes of response chunks.
  * The signal covers headers and body reads. Error bodies and upstream filenames
  * are discarded; HTTP errors, stream failures and oversized/empty files are sanitized.
+ * PDF Content-Type selects PDF; other responses retain the legacy XLSX default.
  */
 export async function fetchDownload(url: string, init: RequestInit, maxBytes: number): Promise<DownloadBody> {
   let reader: Pick<ReadableStreamDefaultReader<Uint8Array>, "read" | "cancel" | "releaseLock"> | undefined;
@@ -48,7 +52,8 @@ export async function fetchDownload(url: string, init: RequestInit, maxBytes: nu
       if (chunk.value.byteLength) chunks.push(chunk.value);
     }
     if (!size) throw new SmipError("Empty SMIP download.");
-    return { chunks, size };
+    const mediaType = response.headers.get("Content-Type")?.split(";", 1)[0]?.trim().toLowerCase();
+    return { chunks, size, contentType: mediaType === PDF_TYPE ? PDF_TYPE : XLSX_TYPE };
   } catch (error) {
     if (error instanceof SmipError) throw error;
     throw new SmipError("SMIP download unavailable.");

@@ -2,7 +2,7 @@ import type { z } from "zod";
 import type { SmipAuth } from "./auth";
 import { REQUEST_TIMEOUT_MS } from "./constants";
 import { currentCredentials } from "./context";
-import { fetchDownload, fetchJson, SmipError } from "./http";
+import { fetchDownload, fetchJson, PDF_TYPE, XLSX_TYPE, SmipError } from "./http";
 
 /**
  * Reads SMIP data with the app's auth cache and request-local credentials.
@@ -29,7 +29,7 @@ export class SmipClient {
     try {
       return await fetchDownload(`${this.baseUrl}/pricelist/download?${new URLSearchParams({ id })}`, {
         method: "GET",
-        headers: { Accept: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", Authorization: `Bearer ${authorization.accessToken}` },
+        headers: { Accept: `${XLSX_TYPE}, ${PDF_TYPE}`, Authorization: `Bearer ${authorization.accessToken}` },
         signal: caller ? AbortSignal.any([timeout, caller]) : timeout,
       }, maxBytes);
     } catch (error) {

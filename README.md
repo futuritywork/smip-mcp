@@ -64,7 +64,7 @@ Do not put organization credentials in `.env`, tool arguments, URLs, logs, or so
 - `GET /.well-known/futurity/plugin`: v3 manifest with detached Ed25519 JWS in
   `X-Futurity-Signature`.
 - `GET /api/catalog`: one public catalog object (not an array); other methods return 405.
-- `GET /downloads/<random identifier>`: temporary XLSX bearer-capability download;
+- `GET /downloads/<random identifier>`: temporary XLSX/PDF bearer-capability download;
   `HEAD` returns headers without consuming it. No credential header is needed.
 - Former `/auth/*` routes: 404.
 
@@ -102,8 +102,10 @@ its independent timeout. **Process restart invalidates all links**. There is no
 disk persistence or cross-process store: multiple instances need routing to the
 issuing process. Expired/unknown links return 404; other methods return 405.
 Responses use `Cache-Control: no-store`, `Referrer-Policy: no-referrer`,
-`X-Content-Type-Options: nosniff`, XLSX content type and a safe generated attachment
-filename; upstream filenames are ignored.
+`X-Content-Type-Options: nosniff`, the file's content type and a safe generated attachment
+filename; upstream filenames are ignored. SMIP responses with `Content-Type: application/pdf`
+(including optional parameters) are served as PDF with a `.pdf` filename. Other responses
+retain the existing XLSX default. Files are passed through unchanged; no conversion occurs.
 
 These plugin-hosted links are the temporary delivery mechanism, not sandbox or
 Vault storage. Saving a downloaded file to sandbox/Vault is a **separate step**

@@ -27,7 +27,7 @@ export function createSmipApp(options: {
     name: "smip-mcp",
     version: "0.1.0",
     path: "/mcp",
-    instructions: "Search SMIP materials with smip_search_materials, then pass a returned part_number to smip_check_stock for quantities by storage location. List pricelists with smip_list_pricelists, and obtain a five-minute XLSX capability link with smip_download_pricelist. Keep download links private; saving them to sandbox/Vault is separate. All tools are read-only. Organization credentials are supplied through the request header, never tool arguments. Sales-order tools are not available.",
+    instructions: "Search SMIP materials with smip_search_materials, then pass a returned part_number to smip_check_stock for quantities by storage location. List pricelists with smip_list_pricelists, and obtain a five-minute XLSX/PDF capability link with smip_download_pricelist. Keep download links private; saving them to sandbox/Vault is separate. All tools are read-only. Organization credentials are supplied through the request header, never tool arguments. Sales-order tools are not available.",
     pluginManifest: {
       specVersion: 3,
       pluginId: "smip-mcp",
@@ -49,7 +49,7 @@ export function createSmipApp(options: {
       ],
       metadata: {
         tagline: "SMIP stock and pricelist downloads",
-        overview: "An administrator configures the organization’s SMIP email and password. Search materials by part number or description, then check on-hand, sales-order-booked and available quantities by storage location. List pricelists and create private five-minute plugin-hosted XLSX download links (maximum 10 MiB). Links are bearer capabilities; sandbox/Vault saving is separate and end-to-end delivery is not guaranteed. All four tools are read-only; sales-order tools are not included.",
+        overview: "An administrator configures the organization’s SMIP email and password. Search materials by part number or description, then check on-hand, sales-order-booked and available quantities by storage location. List pricelists and create private five-minute plugin-hosted XLSX/PDF download links (maximum 10 MiB). Links are bearer capabilities; sandbox/Vault saving is separate and end-to-end delivery is not guaranteed. All four tools are read-only; sales-order tools are not included.",
         setupType: "admin",
       },
     },
