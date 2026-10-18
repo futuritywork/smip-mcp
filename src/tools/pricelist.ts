@@ -17,9 +17,18 @@ const metadata = z.object({
 });
 const envelope = z.object({ success: z.literal(true), status: z.string(), message: z.string() });
 // Production lists omit status/message; Postman examples include both strings.
-const listResponse = envelope.partial({ status: true, message: true }).extend({ data: z.array(metadata.extend({
-  has_price: z.boolean(), has_md_price: z.boolean(), has_promo: z.boolean(),
-})) });
+const listResponse = envelope.partial({ status: true, message: true }).extend({
+  data: z.array(metadata.extend({
+    has_price: z.boolean(), has_md_price: z.boolean(), has_promo: z.boolean(),
+  })),
+  meta: z.object({
+    current_page: z.number().int().positive(),
+    has_more: z.boolean(),
+    last_page: z.number().int().nonnegative(),
+    per_page: z.number().int().positive(),
+    total: z.number().int().nonnegative(),
+  }),
+});
 const reference = z.string().max(8192).nullish();
 const detailResponse = envelope.extend({ data: metadata.extend({
   uploaded_by: z.string().nullish(), contact: z.string().nullish(),
@@ -36,14 +45,14 @@ const downloadOutput = z.object({
   download_url: z.url(),
 });
 
-/** Registers metadata reads and bounded, five-minute plugin-hosted XLSX/PDF capabilities. */
+/** Registers paginated metadata reads and bounded, five-minute plugin-hosted XLSX/PDF capabilities. */
 export function registerPricelistTools(app: McpApp, client: SmipClient, artifacts: ArtifactStore, publicUrl: string) {
   app.tool("smip_list_pricelists", {
-    description: "List SMIP pricelist metadata and available variants. Pass a returned id as pricelist_id to smip_download_pricelist.",
+    description: "List one page of SMIP pricelist metadata and available variants. Page defaults to 1. When meta.has_more is true, request page meta.current_page + 1 to continue; stop when false. Pass a returned id as pricelist_id to smip_download_pricelist.",
     dangerLevel: "read",
-    input: z.object({}),
+    input: z.object({ page: z.number().int().positive().default(1).describe("Page number, starting at 1.") }),
     output: listResponse,
-    handler: (_input, { signal }) => client.get("/pricelist", listResponse, signal),
+    handler: ({ page }, { signal }) => client.get(`/pricelist?${new URLSearchParams({ page: String(page) })}`, listResponse, signal),
   });
   app.tool("smip_download_pricelist", {
     description: "Download a SMIP pricelist in its original XLSX or PDF format (variant price by default, or md_price). Returns a reusable plugin-hosted bearer link expiring in five minutes, not file contents. Anyone with the link can download it; keep it private. Maximum 10 MiB. Saving to sandbox/Vault is a separate step and is not guaranteed.",

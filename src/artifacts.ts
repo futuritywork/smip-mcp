@@ -3,7 +3,7 @@ import type { Middleware } from "@futurity/plugins";
 import { PDF_TYPE, SmipError, type DownloadBody } from "./http";
 
 const TTL_MS = 5 * 60 * 1000;
-const MAX_FILES = 10;
+const MAX_FILES = 80;
 
 type Artifact = DownloadBody & { filename: string; expiresAt: number };
 

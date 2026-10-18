@@ -17,8 +17,12 @@ and JSON text content.
 Two additional read-only tools follow the Get/Show/Download Pricelist examples
 in `futurity-marketplace/SMI Mobile.postman_collection 15102026.json`:
 
-- `smip_list_pricelists({})`: metadata including string `id`, title, brand, product
-  office, upload dates and `has_price`/`has_md_price`/`has_promo` flags.
+- `smip_list_pricelists({ page? })`: one page of metadata including string `id`, title,
+  brand, product office, upload dates and `has_price`/`has_md_price`/`has_promo` flags.
+  `page` is a positive integer, defaulting to 1. Returns SMIP's `meta` with
+  `current_page`, `has_more`, `last_page`, `per_page` and `total`. When `has_more`
+  is true, request `current_page + 1`; stop when false. Pagination is verified
+  against the live API, but omitted from the Postman example.
 - `smip_download_pricelist({ pricelist_id, variant? })`: `variant` is `price`
   (default) or `md_price`. Returns `download_url`, generated `filename`,
   `size_bytes`, `content_type`, `expires_at`, `pricelist_id` and `variant`.
