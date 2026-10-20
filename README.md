@@ -40,7 +40,7 @@ that returns tokens, chained login, platform JWT, SQLite store or custom transpo
 ## Run locally
 
 `@futurity/plugins` uses the local `file:../plugins/packages/plugins` dependency
-(version 3). Keep that sibling checkout available. Build its exported `dist/`
+(manifest v4 SDK). Keep that sibling checkout available. Build its exported `dist/`
 with its existing dependencies before installing this app:
 
 ```sh
@@ -65,16 +65,16 @@ Do not put organization credentials in `.env`, tool arguments, URLs, logs, or so
 
 - `GET /.well-known/health-check`: SDK process health, not an upstream authentication check.
 - `/mcp`: SDK HTTP transport; every request requires the credential header below.
-- `GET /.well-known/futurity/plugin`: v3 manifest with detached Ed25519 JWS in
+- `GET /.well-known/futurity/plugin`: v4 manifest with detached Ed25519 JWS in
   `X-Futurity-Signature`.
-- `GET /api/catalog`: one public catalog object (not an array); other methods return 405.
+- `/api/catalog`: removed in the v4 SDK (404); display and credential metadata live in the signed manifest.
 - `GET /downloads/<random identifier>`: temporary XLSX/PDF bearer-capability download;
   `HEAD` returns headers without consuming it. No credential header is needed.
 - Former `/auth/*` routes: 404.
 
 MCP initialization succeeds with valid credential **shape** and advertises the
 tools capability. `tools/list` exposes exactly the four tools above. Initialization,
-discovery, catalog and health requests do not contact SMIP.
+discovery and health requests do not contact SMIP.
 
 ## Temporary downloads and cleanup
 
@@ -87,14 +87,12 @@ are not bound to an MCP session or user, and are intentionally reusable until
 configure ingress/access logging to redact `/downloads/*` paths. The app does not
 log capability identifiers, references or credentials.
 
-Files stay in app-local memory only: **five files total, stored plus pending**,
+Files stay in app-local memory only: **80 files total, stored plus pending**,
 with fixed limits of **10 MiB per file** and a **five-minute TTL**. Each pending
 download reserves one slot before metadata/auth/download work begins; capacity
 exhaustion returns a sanitized tool error without evicting unexpired links.
-This intentionally reduces small-file capacity from the previous 20-artifact,
-50 MiB budget: even five tiny files fill the store. The slot and per-file limits
-bound stored payloads plus upstream reservations to 50 MiB without separate
-byte accounting. Failed/cancelled operations release reservations when their loads
+The slot and per-file limits bound stored payloads plus upstream reservations
+to 800 MiB without separate byte accounting. Failed/cancelled operations release reservations when their loads
 settle. These limits exclude runtime overhead and already-issued HTTP response
 buffers.
 
@@ -201,24 +199,33 @@ is not validated at startup; it must never come from user input. No live SMIP ca
 
 Set `PUBLIC_URL` to the reachable HTTPS base URL before registration. It defaults
 to `http://localhost:${PORT}` locally, with `PORT` defaulting to 3000. The
-manifest MCP URL, catalog base URL and temporary download links use this setting. The SDK publishes and
+manifest MCP URL and temporary download links use this setting. The SDK publishes and
 signs this manifest (using your configured URL):
 
 ```json
 {
-  "specVersion": 3,
+  "specVersion": 4,
   "pluginId": "smip-mcp",
   "name": "SMIP",
   "version": "0.1.0",
-  "auth": { "type": "none" },
+  "auth": {
+    "type": "none",
+    "grantType": "credentials",
+    "credentials_schema": [
+      { "key": "smip_email", "label": "SMIP email", "type": "input", "required": true },
+      { "key": "smip_password", "label": "SMIP password", "type": "password", "required": true }
+    ]
+  },
   "mcpUrl": "https://your-plugin.example/mcp"
 }
 ```
 
-The SDK derives catalog `slug`, `name` and `mcp_url` from that manifest. The
-catalog declares `grant_type: "credentials"`, required `smip_email` input and
-`smip_password` password fields, and `metadata.setupType: "admin"`. These are field
-definitions, never credential values. There is no plugin token endpoint.
+The SDK supplies `specVersion: 4`; app configuration omits that field. The signed
+manifest also includes `description`, `category`, `icon` and `metadata` (omitted
+from the example above), including `metadata.setupType: "admin"`. Credential
+fields are declared under `auth.credentials_schema`, with
+`auth.grantType: "credentials"`. These are field definitions, never credential
+values. There is no plugin token endpoint or separate catalog endpoint.
 
 Use the public key from `bun run keygen` when registering/verifying the manifest
 in Futurity. Keep the private key only in trusted server configuration. End-to-end
@@ -246,8 +253,7 @@ header from proxy/access logging.
 `src/constants.ts` exports environment settings, the credentials header name,
 and auth timing constants.
 
-Run `bun run check` for TypeScript validation. Automated tests are not currently
-included.
+Run `bun run check` for TypeScript validation.
 
 TypeScript uses `preserveSymlinks` so the file-linked SDK resolves this app's peer
 types rather than a sibling checkout's different Zod version. No dependencies
@@ -256,3 +262,4 @@ or SDK files are changed for this setting.
 These checks do not establish live SMIP or end-to-end Futurity compatibility.
 Existing ignored databases or private configuration are not migrated or deleted;
 they are no longer read.
+

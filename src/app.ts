@@ -8,7 +8,7 @@ import { registerStockTools } from "./tools/stock";
 import { registerPricelistTools } from "./tools/pricelist";
 
 /**
- * Creates a read-only stock/pricelist app with a signed v3 manifest and public catalog.
+ * Creates a read-only stock/pricelist app with a signed v4 discovery manifest.
  * The SDK validates signingKey (Ed25519 PKCS8 DER base64) at construction.
  * publicUrl is the externally reachable base URL; smipMobileUrl defaults to the
  * development API. Construction neither listens nor contacts SMIP.
@@ -29,24 +29,23 @@ export function createSmipApp(options: {
     path: "/mcp",
     instructions: "Search SMIP materials with smip_search_materials, then pass a returned part_number to smip_check_stock for quantities by storage location. List pricelists with smip_list_pricelists, and obtain a five-minute XLSX/PDF capability link with smip_download_pricelist. Keep download links private; saving them to sandbox/Vault is separate. All tools are read-only. Organization credentials are supplied through the request header, never tool arguments. Sales-order tools are not available.",
     pluginManifest: {
-      specVersion: 3,
       pluginId: "smip-mcp",
+      developerEmail: "admin@futurity.work",
       name: "SMIP",
       version: "0.1.0",
       mcpUrl: `${publicUrl}/mcp`,
-      auth: { type: "none" },
+      auth: {
+        type: "none",
+        grantType: "credentials",
+        credentials_schema: [
+          { key: "smip_email", label: "SMIP email", type: "input", required: true },
+          { key: "smip_password", label: "SMIP password", type: "password", required: true },
+        ],
+      },
       signingKey: options.signingKey,
-    },
-    catalog: {
-      grant_type: "credentials",
       description: "Search SMIP materials, check stock and download pricelists using organization-configured credentials.",
       category: "Business",
-      icon_url: "https://www.synnexmetrodata.com/wp-content/uploads/2020/06/Logo-SMI-300-x-80-pixel.png",
-      plugin_base_url: publicUrl,
-      credential_schema: [
-        { key: "smip_email", label: "SMIP email", type: "input", required: true },
-        { key: "smip_password", label: "SMIP password", type: "password", required: true },
-      ],
+      icon: "https://www.synnexmetrodata.com/wp-content/uploads/2020/06/Logo-SMI-300-x-80-pixel.png",
       metadata: {
         tagline: "SMIP stock and pricelist downloads",
         overview: "An administrator configures the organization’s SMIP email and password. Search materials by part number or description, then check on-hand, sales-order-booked and available quantities by storage location. List pricelists and create private five-minute plugin-hosted XLSX/PDF download links (maximum 10 MiB). Links are bearer capabilities; sandbox/Vault saving is separate and end-to-end delivery is not guaranteed. All four tools are read-only; sales-order tools are not included.",

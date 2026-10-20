@@ -9,7 +9,7 @@ type Artifact = DownloadBody & { filename: string; expiresAt: number };
 
 /**
  * Owns temporary bearer-capability files and in-flight capacity reservations.
- * Up to ten stored/pending files share capacity, each bounded to 10 MiB.
+ * Up to 80 stored/pending files share capacity, each bounded to 10 MiB.
  * Loads reserve one slot; successes retain it for five minutes, failures release it.
  * stop() aborts loads, clears files and the unref'ed cleanup timer, and closes the store.
  */
@@ -43,8 +43,9 @@ export class ArtifactStore {
     this.cleanup();
     if (this.stopped || caller?.aborted) throw new SmipError("Download cancelled.", 499);
     if (!/^pricelist-[0-9]+-(price|md_price)$/.test(filenameStem)) throw new SmipError("Invalid download filename.", 400);
-    if (this.files.size + this.pending.size >= MAX_FILES)
+    if (this.files.size + this.pending.size >= MAX_FILES) {
       throw new SmipError("Temporary download capacity reached. Try again after links expire.", 429);
+    }
     const controller = new AbortController();
     this.pending.add(controller);
     const signal = caller ? AbortSignal.any([caller, controller.signal]) : controller.signal;
